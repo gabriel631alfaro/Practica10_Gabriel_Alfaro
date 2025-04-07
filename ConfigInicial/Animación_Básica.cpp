@@ -1,6 +1,6 @@
-/*
-Previo 10. Animaci�n B�sica           Alfaro Fragoso Jos� Gabriel 
-Fecha de entrega: 05 de abril de 2025        317019450
+﻿/*
+Practica 10. Animación Básica           Alfaro Fragoso José Gabriel 
+Fecha de entrega: 11 de abril de 2025        317019450
 */
 
 #include <iostream>
@@ -105,19 +105,29 @@ float vertices[] = {
 
 glm::vec3 Light1 = glm::vec3(0);
 //Anim
-//float rotBall = 0; //rotaci�n 
-bool AnimBall = false; //activa o desactiva la animaci�n 
+float rotBall = 0; //rotación 
+bool AnimBall = false; //activa o desactiva la animación 
 
 //variables para el movimiento de la pelota 
 float ballSpeed = 0.001f;     // Velocidad de movimiento
-bool goingToDog = true;               // Direcci�n: true = hacia el cubo, false = hacia el perro
+bool goingToDog = true;               // Dirección: true = hacia el cubo, false = hacia el perro
 glm::vec3 startPos(0.0f, 1.5f, 0.0f);  // Punto inicial (cubo de luz)
 glm::vec3 endPos(0.0f, 0.0f, 0.0f);  // Punto final (nariz del perro )
-float animationProgress = 0.0f;        // Progreso de la interpolaci�n (0 a 1)
+float animationProgress = 0.0f;        // Progreso de la interpolación (0 a 1)
 
 // Deltatime
 GLfloat deltaTime = 0.0f;	// Time between current frame and last frame 
 GLfloat lastFrame = 0.0f;  	// Time of last frame
+
+//Rotación de la pelota 
+
+// Agrega estas variables globales al inicio del código (con las otras variables globales)
+float circleRadius = 2.0f;       // Radio del círculo
+float angularSpeed = 1.0f;       // Velocidad angular
+float currentAngle = 0.0f;       // Ángulo actual
+glm::vec3 circleCenter(0.0f, 1.0f, 0.0f); // Centro del círculo
+
+
 
 int main()
 {
@@ -209,7 +219,7 @@ int main()
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
 		glfwPollEvents();
 		DoMovement();
-		Animation();//el contenido de la animaci�n 
+		Animation();//el contenido de la animación 
 
 		// Clear the colorbuffer
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -301,19 +311,39 @@ int main()
 		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
 		Dog.Draw(lightingShader);
 
+		//rotación de la pelota en el contorno del piso
+
 		model = glm::mat4(1);
+		if (AnimBall) {
+			// Calcular posición en el círculo
+			float x = circleCenter.x + circleRadius * cos(currentAngle);
+			float z = circleCenter.z + circleRadius * sin(currentAngle);
+
+			// Posicionar y animar la pelota
+			model = glm::translate(model, glm::vec3(x, circleCenter.y+1.0, z));
+
+			// Aplicar rotación (pivote) - la pelota gira sobre sí misma
+			model = glm::rotate(model, currentAngle, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotación en Y
+
+		}
+		else {
+			// Posición inicial cuando la animación no está activa
+			model = glm::translate(model, glm::vec3(circleCenter.x + circleRadius, circleCenter.y+1.0, circleCenter.z));
+		}
+
 		glEnable(GL_BLEND);//Avtiva la funcionalidad para trabajar el canal alfa
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 1);
-		//model = glm::rotate(model, glm::radians(rotBall), glm::vec3(0.0f, 0.0f, 1.0f));//cambio para rotar en z
-		glm::vec3 ballPos = glm::mix(startPos, endPos, animationProgress);  // Posici�n actual
-		model = glm::translate(model, ballPos);//taslacion de la pelota 
+		//model = glm::rotate(model, glm::radians(rotBall), glm::vec3(0.0f, 1.0f, 0.0f));//ROTACION 
+		//glm::vec3 ballPos = glm::mix(startPos, endPos, animationProgress);  // Posición actual
+		//model = glm::translate(model, ballPos);//taslacion de la pelota 
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-	    Ball.Draw(lightingShader); 
+		Ball.Draw(lightingShader); 
 		glDisable(GL_BLEND);  //Desactiva el canal alfa 
 		glBindVertexArray(0);
-	
+
+
 
 		// Also draw the lamp object, again binding the appropriate shader
 		lampShader.Use();
@@ -330,13 +360,13 @@ int main()
 		model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		// Draw the light object (using light's vertex attributes)
-		
-			model = glm::mat4(1);
-			model = glm::translate(model, pointLightPositions[0]);
-			model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
-			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-			glBindVertexArray(VAO);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
+		//quitando el cuadro para mayor vicibilidad 
+			//model = glm::mat4(1);
+			//model = glm::translate(model, pointLightPositions[0]);
+			//model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
+			//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+			//glBindVertexArray(VAO);
+			//glDrawArrays(GL_TRIANGLES, 0, 36);
 		
 		glBindVertexArray(0);
 
@@ -456,6 +486,17 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode
 	}
 }
 void Animation() {
+
+	//Rotacion de la pelota 
+		if (AnimBall) {
+		// Actualizar el ángulo para la animación circular
+		currentAngle += angularSpeed * deltaTime;
+
+		// Mantener el ángulo en un rango de 0-2π para evitar overflow
+		if (currentAngle > 2 * glm::pi<float>()) {
+			currentAngle -= 2 * glm::pi<float>();
+		}
+	}
 	//if (AnimBall)
 	//{
 	//	rotBall += 0.2f;
@@ -466,24 +507,24 @@ void Animation() {
 	//	//rotBall = 0.0f;
 	//}
 	//movimiento de la pelota en vertical 
-	if (AnimBall) {
-		// Incrementa o decrementa el progreso seg�n la direcci�n
-		if (goingToDog) {
-			animationProgress += ballSpeed;
-			if (animationProgress >= 1.0f) {
-				animationProgress = 1.0f;
-				goingToDog = false;  // Cambia direcci�n hacia el perro 
-			}
-		}
-		else {
-			animationProgress -= ballSpeed;
-			if (animationProgress <= 0.0f) {
-				animationProgress = 0.0f;
-				goingToDog = true;   // Cambia direcci�n hacia el cubo
-			}
-		}
+	//if (AnimBall) {
+	//	// Incrementa o decrementa el progreso según la dirección
+	//	if (goingToDog) {
+	//		animationProgress += ballSpeed;
+	//		if (animationProgress >= 1.0f) {
+	//			animationProgress = 1.0f;
+	//			goingToDog = false;  // Cambia dirección hacia el perro 
+	//		}
+	//	}
+	//	else {
+	//		animationProgress -= ballSpeed;
+	//		if (animationProgress <= 0.0f) {
+	//			animationProgress = 0.0f;
+	//			goingToDog = true;   // Cambia dirección hacia el cubo
+	//		}
+	//	}
 
-	}
+	//}
 }
 
 void MouseCallback(GLFWwindow *window, double xPos, double yPos)
