@@ -151,7 +151,7 @@ int main()
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);*/
 
 	// Create a GLFWwindow object that we can use for GLFW's functions
-	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Previo 10. Animacion basica. Gabriel Alfaro", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Practica 10. Animacion basica. Gabriel Alfaro", nullptr, nullptr);
 
 	if (nullptr == window)
 	{
@@ -328,8 +328,8 @@ int main()
 			model = glm::translate(model, glm::vec3(circleRadius, 0.0f, 0.0f));
 
 			// Salto más pronunciado
-			/*float jumpOffset = jumpHeight * sin(jumpProgress * glm::pi<float>());
-			model = glm::translate(model, glm::vec3(0.0f, jumpOffset, 0.0f));*/
+			float jumpOffset = jumpHeight * sin(jumpProgress * glm::pi<float>());
+			model = glm::translate(model, glm::vec3(0.0f, jumpOffset, 0.0f));
 		}
 		else {
 			model = glm::translate(model, glm::vec3(circleCenter.x + circleRadius, 0.0f, circleCenter.z));
@@ -343,33 +343,21 @@ int main()
 		model = glm::mat4(1);
 
 		if (AnimBall) {
-			// Calcular posición en el círculo
+			// Posición base en el círculo
 			float x = circleCenter.x + circleRadius * cos(currentAngle);
 			float z = circleCenter.z + circleRadius * sin(currentAngle);
+			float y = circleCenter.y + 1.0f - ballImpactHeight * sin(ballFallProgress * glm::pi<float>());
 
-			// Posicionar y animar la pelota
-			model = glm::translate(model, glm::vec3(x, circleCenter.y + 1.0, z));
+			model = glm::translate(model, glm::vec3(x, y, z));
 
-			// Aplicar rotación (pivote) - la pelota gira sobre sí misma
-			model = glm::rotate(model, currentAngle, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotación en Y
 
+			// Movimiento parabólico
+			float ballYOffset = -ballImpactHeight * (1.0f - cos(ballFallProgress * glm::pi<float>()));
+			model = glm::translate(model, glm::vec3(0.0f, ballYOffset, 0.0f));
+
+			// Rotación sobre sí misma (sentido horario, negativo)
+			model = glm::rotate(model, currentAngle, glm::vec3(0.0f, 1.0f, 0.0f)); // Cambiado a negativo
 		}
-		//if (AnimBall) {
-		//	// Posición base en el círculo
-		//	float x = circleCenter.x + circleRadius * cos(currentAngle);
-		//	float z = circleCenter.z + circleRadius * sin(currentAngle);
-		//	float y = circleCenter.y + 1.0f - ballImpactHeight * sin(ballFallProgress * glm::pi<float>());
-
-		//	model = glm::translate(model, glm::vec3(x, y, z));
-
-
-		//	//// Movimiento parabólico
-		//	//float ballYOffset = -ballImpactHeight * (1.0f - cos(ballFallProgress * glm::pi<float>()));
-		//	//model = glm::translate(model, glm::vec3(0.0f, ballYOffset, 0.0f));
-
-		//	// Rotación sobre sí misma (sentido horario, negativo)
-		//	model = glm::rotate(model, currentAngle, glm::vec3(0.0f, 1.0f, 0.0f)); // Cambiado a negativo
-		//}
 		else {
 			// Posición inicial cuando la animación no está activa
 			model = glm::translate(model, glm::vec3(circleCenter.x + circleRadius, circleCenter.y + 1.0, circleCenter.z));
@@ -533,33 +521,33 @@ void Animation() {
 		currentAngle -= angularSpeed * deltaTime;
 		dogRotationAngle += angularSpeed * deltaTime; // El perro gira en sentido antihorario
 
-	//	// Asegurar que los ángulos se mantengan en [0, 2π]
-	//	if (currentAngle < 0) currentAngle += 2 * glm::pi<float>();
-	//	if (dogRotationAngle > 2 * glm::pi<float>()) dogRotationAngle -= 2 * glm::pi<float>();
+		// Asegurar que los ángulos se mantengan en [0, 2π]
+		if (currentAngle < 0) currentAngle += 2 * glm::pi<float>();
+		if (dogRotationAngle > 2 * glm::pi<float>()) dogRotationAngle -= 2 * glm::pi<float>();
 
-	//	// Detectar colisión en sentido horario: diferencia cercana a 0
-	//	float angleDiff = fmod(abs(currentAngle - dogRotationAngle), 2 * glm::pi<float>());
-	//	bool isNearCollision = (angleDiff < 0.2f) || (angleDiff > (2 * glm::pi<float>() - 0.2f));
+		// Detectar colisión en sentido horario: diferencia cercana a 0
+		float angleDiff = fmod(abs(currentAngle - dogRotationAngle), 2 * glm::pi<float>());
+		bool isNearCollision = (angleDiff < 0.2f) || (angleDiff > (2 * glm::pi<float>() - 0.2f));
 
-	//	// Salto del perro
-	//	if (isNearCollision) {
-	//		jumpProgress += jumpSpeed * deltaTime;
-	//		if (jumpProgress > 1.0f) jumpProgress = 1.0f;
-	//	}
-	//	else {
-	//		jumpProgress -= jumpSpeed * deltaTime * 2.0f;
-	//		if (jumpProgress < 0.0f) jumpProgress = 0.0f;
-	//	}
+		// Salto del perro
+		if (isNearCollision) {
+			jumpProgress += jumpSpeed * deltaTime;
+			if (jumpProgress > 1.0f) jumpProgress = 1.0f;
+		}
+		else {
+			jumpProgress -= jumpSpeed * deltaTime * 2.0f;
+			if (jumpProgress < 0.0f) jumpProgress = 0.0f;
+		}
 
-	//	// Rebote de la pelota
-	//	if (isNearCollision) {
-	//		ballFallProgress += ballFallSpeed * deltaTime;
-	//		if (ballFallProgress > 1.0f) ballFallProgress = 1.0f;
-	//	}
-	//	else {
-	//		ballFallProgress -= ballFallSpeed * deltaTime * 0.5f;
-	//		if (ballFallProgress < 0.0f) ballFallProgress = 0.0f;
-	//	}
+		// Rebote de la pelota
+		if (isNearCollision) {
+			ballFallProgress += ballFallSpeed * deltaTime;
+			if (ballFallProgress > 1.0f) ballFallProgress = 1.0f;
+		}
+		else {
+			ballFallProgress -= ballFallSpeed * deltaTime * 0.5f;
+			if (ballFallProgress < 0.0f) ballFallProgress = 0.0f;
+		}
 	}
 }
 
