@@ -120,14 +120,24 @@ GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
 GLfloat lastFrame = 0.0f;  	// Time of last frame
 
 //Rotación de la pelota 
-
-// Agrega estas variables globales al inicio del código (con las otras variables globales)
 float circleRadius = 2.0f;       // Radio del círculo
 float angularSpeed = 1.0f;       // Velocidad angular
 float currentAngle = 0.0f;       // Ángulo actual
 glm::vec3 circleCenter(0.0f, 1.0f, 0.0f); // Centro del círculo
 
+//rotación perro 
+float dogRotationAngle = 0.0f;  // Ángulo de rotación del perro (dirección contraria)
 
+//salto del perro y la pelora 
+bool isJumping = false;          // Controla si el perro está saltando
+bool ballHit = false;            // Controla si la pelota fue golpeada
+float jumpProgress = 0.0f;       // Progreso del salto (0 a 1)
+float ballFallProgress = 0.5f;   // Progreso de la caída/ascenso de la pelota (0 a 1)
+// Animación
+float jumpHeight = 2.1f;         // Altura máxima del salto (reduce este valor)
+float jumpSpeed = 1.0f;          // Velocidad del salto 
+float ballFallSpeed = .5f;      // Velocidad de caída/ascenso 
+float ballImpactHeight = 1.9f;   // Altura de impacto (reduce este valor)
 
 int main()
 {
@@ -303,10 +313,27 @@ int main()
 		//Carga de modelo 
         view = camera.GetViewMatrix();	
 		model = glm::mat4(1);
+		model = glm::scale(model, glm::vec3(1.5f, 1.0f, 1.5f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		Piso.Draw(lightingShader);
+		
+		
+		//modelo del perro 
 
 		model = glm::mat4(1);
+		if (AnimBall) {
+			// Posición base en el círculo
+			model = glm::translate(model, glm::vec3(circleCenter.x, 0.0f, circleCenter.z));
+			model = glm::rotate(model, dogRotationAngle, glm::vec3(0.0f, -1.0f, 0.0f));
+			model = glm::translate(model, glm::vec3(circleRadius, 0.0f, 0.0f));
+
+			// Salto más pronunciado
+			/*float jumpOffset = jumpHeight * sin(jumpProgress * glm::pi<float>());
+			model = glm::translate(model, glm::vec3(0.0f, jumpOffset, 0.0f));*/
+		}
+		else {
+			model = glm::translate(model, glm::vec3(circleCenter.x + circleRadius, 0.0f, circleCenter.z));
+		}
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
 		Dog.Draw(lightingShader);
@@ -314,23 +341,39 @@ int main()
 		//rotación de la pelota en el contorno del piso
 
 		model = glm::mat4(1);
+
 		if (AnimBall) {
 			// Calcular posición en el círculo
 			float x = circleCenter.x + circleRadius * cos(currentAngle);
 			float z = circleCenter.z + circleRadius * sin(currentAngle);
 
 			// Posicionar y animar la pelota
-			model = glm::translate(model, glm::vec3(x, circleCenter.y+1.0, z));
+			model = glm::translate(model, glm::vec3(x, circleCenter.y + 1.0, z));
 
 			// Aplicar rotación (pivote) - la pelota gira sobre sí misma
 			model = glm::rotate(model, currentAngle, glm::vec3(0.0f, 1.0f, 0.0f)); // Rotación en Y
 
 		}
+		//if (AnimBall) {
+		//	// Posición base en el círculo
+		//	float x = circleCenter.x + circleRadius * cos(currentAngle);
+		//	float z = circleCenter.z + circleRadius * sin(currentAngle);
+		//	float y = circleCenter.y + 1.0f - ballImpactHeight * sin(ballFallProgress * glm::pi<float>());
+
+		//	model = glm::translate(model, glm::vec3(x, y, z));
+
+
+		//	//// Movimiento parabólico
+		//	//float ballYOffset = -ballImpactHeight * (1.0f - cos(ballFallProgress * glm::pi<float>()));
+		//	//model = glm::translate(model, glm::vec3(0.0f, ballYOffset, 0.0f));
+
+		//	// Rotación sobre sí misma (sentido horario, negativo)
+		//	model = glm::rotate(model, currentAngle, glm::vec3(0.0f, 1.0f, 0.0f)); // Cambiado a negativo
+		//}
 		else {
 			// Posición inicial cuando la animación no está activa
-			model = glm::translate(model, glm::vec3(circleCenter.x + circleRadius, circleCenter.y+1.0, circleCenter.z));
+			model = glm::translate(model, glm::vec3(circleCenter.x + circleRadius, circleCenter.y + 1.0, circleCenter.z));
 		}
-
 		glEnable(GL_BLEND);//Avtiva la funcionalidad para trabajar el canal alfa
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -486,17 +529,41 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode
 	}
 }
 void Animation() {
+	if (AnimBall) {
+		currentAngle -= angularSpeed * deltaTime;
+		dogRotationAngle += angularSpeed * deltaTime; // El perro gira en sentido antihorario
 
-	//Rotacion de la pelota 
-		if (AnimBall) {
-		// Actualizar el ángulo para la animación circular
-		currentAngle += angularSpeed * deltaTime;
+	//	// Asegurar que los ángulos se mantengan en [0, 2π]
+	//	if (currentAngle < 0) currentAngle += 2 * glm::pi<float>();
+	//	if (dogRotationAngle > 2 * glm::pi<float>()) dogRotationAngle -= 2 * glm::pi<float>();
 
-		// Mantener el ángulo en un rango de 0-2π para evitar overflow
-		if (currentAngle > 2 * glm::pi<float>()) {
-			currentAngle -= 2 * glm::pi<float>();
-		}
+	//	// Detectar colisión en sentido horario: diferencia cercana a 0
+	//	float angleDiff = fmod(abs(currentAngle - dogRotationAngle), 2 * glm::pi<float>());
+	//	bool isNearCollision = (angleDiff < 0.2f) || (angleDiff > (2 * glm::pi<float>() - 0.2f));
+
+	//	// Salto del perro
+	//	if (isNearCollision) {
+	//		jumpProgress += jumpSpeed * deltaTime;
+	//		if (jumpProgress > 1.0f) jumpProgress = 1.0f;
+	//	}
+	//	else {
+	//		jumpProgress -= jumpSpeed * deltaTime * 2.0f;
+	//		if (jumpProgress < 0.0f) jumpProgress = 0.0f;
+	//	}
+
+	//	// Rebote de la pelota
+	//	if (isNearCollision) {
+	//		ballFallProgress += ballFallSpeed * deltaTime;
+	//		if (ballFallProgress > 1.0f) ballFallProgress = 1.0f;
+	//	}
+	//	else {
+	//		ballFallProgress -= ballFallSpeed * deltaTime * 0.5f;
+	//		if (ballFallProgress < 0.0f) ballFallProgress = 0.0f;
+	//	}
 	}
+}
+
+	
 	//if (AnimBall)
 	//{
 	//	rotBall += 0.2f;
@@ -525,7 +592,7 @@ void Animation() {
 	//	}
 
 	//}
-}
+
 
 void MouseCallback(GLFWwindow *window, double xPos, double yPos)
 {
